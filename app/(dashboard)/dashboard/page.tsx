@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireBusiness } from "@/lib/business";
+import { displayTimezone } from "@/lib/time";
 
 export const metadata: Metadata = { title: "Overview — BookFlow" };
 
@@ -74,7 +75,7 @@ export default async function DashboardPage() {
 
       <p className="text-sm text-muted">
         Timezone:{" "}
-        <span className="font-medium text-foreground">{business.timezone}</span>.
+        <span className="font-medium text-foreground">{displayTimezone(business.timezone)}</span>.
         All times are stored in UTC and shown to you in this zone.
       </p>
     </div>
