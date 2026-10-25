@@ -182,3 +182,16 @@ export const DAY_NAMES = [
   "Friday",
   "Saturday",
 ] as const;
+
+/** Today's calendar date in a given zone, as "YYYY-MM-DD". */
+export function todayInZone(timeZone: string, now: Date = new Date()): string {
+  const { year, month, day } = wallClockAt(now, timeZone);
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+/** Calendar arithmetic on a date string, with no timezone involved. */
+export function addDays(date: string, days: number): string {
+  const { year, month, day } = parseDateOnly(date);
+  const shifted = new Date(Date.UTC(year, month - 1, day + days));
+  return shifted.toISOString().slice(0, 10);
+}
