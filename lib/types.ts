@@ -17,6 +17,8 @@ export interface Business {
   slug: string;
   /** IANA zone name, e.g. "Asia/Kolkata". */
   timezone: string;
+  /** ISO 4217, uppercase. */
+  currency: string;
   created_at: string;
 }
 

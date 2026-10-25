@@ -65,7 +65,7 @@ never be imported into a Client Component.
 
 - [x] Phase 1 — Scaffold, Supabase clients, landing page, deploy
 - [x] Phase 2 — Authentication
-- [ ] Phase 3 — Services and staff CRUD, row-level security
+- [x] Phase 3 — Services and staff CRUD, row-level security
 - [ ] Phase 4 — Availability engine
 - [ ] Phase 5 — Public booking page
 - [ ] Phase 6 — Stripe deposits
