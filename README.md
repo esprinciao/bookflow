@@ -3,12 +3,19 @@
 A multi-tenant appointment booking SaaS for small service businesses — salons,
 clinics, tutors, consultants.
 
-Business owners sign up, define their services and weekly availability, and get
-a public booking page. Customers book slots without creating an account. The
+Business owners sign up, define their services, team and weekly availability,
+and get a public booking page. Customers book without creating an account. The
 owner sees everything on a dashboard.
 
-**Live demo:** _not deployed yet_
-**Demo booking page:** _not deployed yet_
+**Live:** https://bookflow-prince-s-org.vercel.app
+**Try the booking flow:** https://bookflow-prince-s-org.vercel.app/book/demo
+
+**Demo dashboard login**
+`demo@bookflow.example` / `demo-booking-2026`
+
+The demo studio is in `Europe/London` and prices in GBP, deliberately different
+from wherever you are — the whole app converts for display. If the demo data
+gets messy, `psql "$SUPABASE_DB_URL" -f supabase/seed-demo.sql` restores it.
 
 ## Stack
 
@@ -17,17 +24,15 @@ owner sees everything on a dashboard.
 | Framework | Next.js (App Router) + TypeScript |
 | Styling | Tailwind CSS |
 | Database & auth | Supabase (Postgres, row-level security) |
-| Payments | Stripe Checkout (test mode) |
+| Payments | Stripe Checkout, test mode |
+| Tests | Vitest |
 | Hosting | Vercel |
 
-## The interesting decision
+## The three decisions worth explaining
 
-Double-booking is prevented by a Postgres **exclusion constraint**, not by
-application-level checks:
+### 1. Double-booking is prevented by Postgres, not by application code
 
 ```sql
-CREATE EXTENSION IF NOT EXISTS btree_gist;
-
 ALTER TABLE bookings ADD CONSTRAINT no_double_booking
   EXCLUDE USING gist (
     staff_id WITH =,
@@ -36,30 +41,80 @@ ALTER TABLE bookings ADD CONSTRAINT no_double_booking
 ```
 
 "Check whether the slot is free, then write the booking" is two steps. Two
-customers clicking *Book* on the same slot at the same moment can both pass the
-check before either one writes, and you end up with two confirmed appointments
-in one chair. No amount of application-level checking fixes that, because the
-gap between the check and the write is where the race lives.
+customers tapping *Book* at the same moment can both pass the check before
+either one writes, and you end up with two confirmed appointments in one chair.
+No amount of application-level checking closes that window, because the gap
+between the check and the write *is* the window.
 
-The exclusion constraint moves the guarantee into the database, where the write
-itself is the check. The second request fails with a constraint violation, which
-the API catches and turns into a friendly *"that slot was just taken"* message.
+An exclusion constraint makes the write itself the check. The second request
+fails with SQLSTATE `23P01`, which the API turns into *"that slot was taken a
+moment before you confirmed."*
+
+**This was measured, not assumed.** Ten simultaneous requests for one free slot:
+one succeeded, nine were rejected, one row in Postgres. Eight were caught by the
+application-level availability re-check — and **one was not**, and was stopped
+only by the constraint.
+
+The constraint is partial, covering only `confirmed` rows, which is why
+cancelling frees the slot immediately with no separate release step.
+
+`supabase/tests/no_double_booking_test.sql` proves the behaviour against a real
+database inside a transaction that rolls back.
+
+### 2. Multi-tenant isolation lives in the database
+
+Every table has row-level security with owner-scoped policies and denies by
+default. Tenants cannot read or write each other's rows even if a query forgets
+its `WHERE` clause.
+
+The public booking page does **not** get relaxed policies. It reads through
+three `SECURITY DEFINER` functions that return exactly what a stranger may see.
+An anonymous visitor learns that a staff member is busy between two instants —
+never who with, and never why someone is away. `bookings` holds customer names
+and email addresses, and those tables stay shut.
+
+### 3. Wall-clock time and instants are different things
+
+Weekly hours are stored as `time` (a wall-clock reading); bookings as
+`timestamptz` (an absolute instant). "I work 9–5 on Tuesdays" stays true across
+a daylight-saving change; a specific appointment does not move.
+
+Converting between them is not a total function, and both failure modes are
+handled in `lib/time.ts`:
+
+- **Skipped.** `01:30` on 2026-03-29 in `Europe/London` never occurs — the clock
+  jumps `00:59 GMT` to `02:00 BST`. No slot is offered.
+- **Ambiguous.** `01:30` on 2026-10-25 occurs twice. The earlier is used, as
+  iCalendar does.
+
+Slot generation lives in `lib/availability.ts` as a **pure function** — all
+inputs are arguments, no database client, no clock it wasn't given. That is what
+makes the awkward cases testable without a browser.
 
 ## Running locally
 
 ```bash
 npm install
-cp .env.example .env.local   # then fill in your own keys
+cp .env.example .env.local     # fill in your own keys
+./scripts/migrate.sh           # apply migrations
 npm run dev
 ```
 
-Open http://localhost:3000.
+```bash
+npm test          # vitest
+npm run lint
+npm run build
+```
 
-## Environment variables
+`scripts/migrate.sh` applies `supabase/migrations/*.sql` once each, one
+transaction per file, tracked in a `schema_migrations` table. Re-running is a
+no-op.
+
+## Environment
 
 See `.env.example`. `SUPABASE_SERVICE_ROLE_KEY` bypasses row-level security
-entirely — it is server-only, must never carry a `NEXT_PUBLIC_` prefix, and must
-never be imported into a Client Component.
+entirely: server-side only, never prefixed `NEXT_PUBLIC_`, never imported into a
+Client Component.
 
 ## Build status
 
@@ -69,7 +124,7 @@ never be imported into a Client Component.
 - [x] Phase 4 — Availability engine
 - [x] Phase 5 — Public booking page
 - [ ] Phase 6 — Stripe deposits
-- [ ] Phase 7 — Owner dashboard and polish
+- [x] Phase 7 — Owner dashboard and polish
 
 ---
 
