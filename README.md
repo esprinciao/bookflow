@@ -1,36 +1,76 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# BookFlow
 
-## Getting Started
+A multi-tenant appointment booking SaaS for small service businesses — salons,
+clinics, tutors, consultants.
 
-First, run the development server:
+Business owners sign up, define their services and weekly availability, and get
+a public booking page. Customers book slots without creating an account. The
+owner sees everything on a dashboard.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+**Live demo:** _not deployed yet_
+**Demo booking page:** _not deployed yet_
+
+## Stack
+
+| Concern | Choice |
+| --- | --- |
+| Framework | Next.js (App Router) + TypeScript |
+| Styling | Tailwind CSS |
+| Database & auth | Supabase (Postgres, row-level security) |
+| Payments | Stripe Checkout (test mode) |
+| Hosting | Vercel |
+
+## The interesting decision
+
+Double-booking is prevented by a Postgres **exclusion constraint**, not by
+application-level checks:
+
+```sql
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+
+ALTER TABLE bookings ADD CONSTRAINT no_double_booking
+  EXCLUDE USING gist (
+    staff_id WITH =,
+    tstzrange(starts_at, ends_at) WITH &&
+  ) WHERE (status = 'confirmed');
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+"Check whether the slot is free, then write the booking" is two steps. Two
+customers clicking *Book* on the same slot at the same moment can both pass the
+check before either one writes, and you end up with two confirmed appointments
+in one chair. No amount of application-level checking fixes that, because the
+gap between the check and the write is where the race lives.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The exclusion constraint moves the guarantee into the database, where the write
+itself is the check. The second request fails with a constraint violation, which
+the API catches and turns into a friendly *"that slot was just taken"* message.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Running locally
 
-## Learn More
+```bash
+npm install
+cp .env.example .env.local   # then fill in your own keys
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Open http://localhost:3000.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Environment variables
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+See `.env.example`. `SUPABASE_SERVICE_ROLE_KEY` bypasses row-level security
+entirely — it is server-only, must never carry a `NEXT_PUBLIC_` prefix, and must
+never be imported into a Client Component.
 
-## Deploy on Vercel
+## Build status
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- [x] Phase 1 — Scaffold, Supabase clients, landing page, deploy
+- [ ] Phase 2 — Authentication
+- [ ] Phase 3 — Services and staff CRUD, row-level security
+- [ ] Phase 4 — Availability engine
+- [ ] Phase 5 — Public booking page
+- [ ] Phase 6 — Stripe deposits
+- [ ] Phase 7 — Owner dashboard and polish
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+Self-initiated portfolio project.

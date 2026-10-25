@@ -1,69 +1,112 @@
-import Image from "next/image";
+import Link from "next/link";
+
+const features = [
+  {
+    title: "Services and staff",
+    body: "Define what you offer, how long it takes, what it costs, and who delivers it. Buffers between appointments are respected automatically.",
+  },
+  {
+    title: "Weekly availability",
+    body: "Set the hours you work once. Block out time off when plans change. Slots are generated from the rules, never hand-maintained.",
+  },
+  {
+    title: "A public booking link",
+    body: "Share one URL. Customers pick a service, pick a slot, and confirm — no account, no app, no phone tag.",
+  },
+  {
+    title: "Deposits up front",
+    body: "Collect a deposit through Stripe at the moment of booking, so a no-show costs the customer something too.",
+  },
+];
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <>
+      <header className="border-b border-border">
+        <nav className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
+          <span className="text-lg font-semibold tracking-tight">BookFlow</span>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/login"
+              className="rounded-lg px-3 py-2 text-sm font-medium text-muted transition-colors hover:text-foreground"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+              Log in
+            </Link>
+            <Link
+              href="/signup"
+              className="rounded-lg bg-brand px-3 py-2 text-sm font-medium text-brand-contrast transition-colors hover:bg-brand-hover"
             >
-              Learning
-            </a>{" "}
-            center.
+              Get started
+            </Link>
+          </div>
+        </nav>
+      </header>
+
+      <main className="flex-1">
+        <section className="mx-auto max-w-5xl px-4 py-20 sm:py-28">
+          <p className="inline-flex rounded-full bg-brand-soft px-3 py-1 text-xs font-medium text-brand">
+            For salons, clinics, tutors and consultants
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+          <h1 className="mt-5 max-w-3xl text-4xl font-semibold tracking-tight text-balance sm:text-6xl">
+            Stop booking appointments over text message.
+          </h1>
+          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted text-pretty">
+            BookFlow gives your business a booking page your customers can use
+            themselves. You set the services and the hours. It handles the
+            calendar, the deposits, and the double-bookings.
+          </p>
+          <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+            <Link
+              href="/signup"
+              className="rounded-lg bg-brand px-5 py-3 text-center text-sm font-medium text-brand-contrast transition-colors hover:bg-brand-hover"
+            >
+              Create your booking page
+            </Link>
+            <Link
+              href="/book/demo"
+              className="rounded-lg border border-border px-5 py-3 text-center text-sm font-medium transition-colors hover:bg-surface"
+            >
+              See a live example
+            </Link>
+          </div>
+        </section>
+
+        <section className="border-t border-border bg-surface">
+          <div className="mx-auto max-w-5xl px-4 py-16 sm:py-20">
+            <div className="grid gap-x-10 gap-y-10 sm:grid-cols-2">
+              {features.map((feature) => (
+                <div key={feature.title}>
+                  <h2 className="text-base font-semibold">{feature.title}</h2>
+                  <p className="mt-2 leading-relaxed text-muted text-pretty">
+                    {feature.body}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-5xl px-4 py-16 sm:py-20">
+          <h2 className="text-2xl font-semibold tracking-tight">
+            Two people cannot book the same slot.
+          </h2>
+          <p className="mt-4 max-w-2xl leading-relaxed text-muted text-pretty">
+            Most booking tools check whether a slot is free and then write the
+            booking. Under load those are two separate steps, and two customers
+            can both pass the check before either one writes. BookFlow enforces
+            it in Postgres with an exclusion constraint instead, so overlapping
+            appointments for the same staff member are impossible at the
+            database level — not merely unlikely.
+          </p>
+        </section>
       </main>
-    </div>
+
+      <footer className="border-t border-border">
+        <div className="mx-auto flex max-w-5xl flex-col gap-1 px-4 py-8 text-sm text-muted sm:flex-row sm:items-center sm:justify-between">
+          <span>BookFlow</span>
+          <span>A portfolio project. Payments run in Stripe test mode.</span>
+        </div>
+      </footer>
+    </>
   );
 }
