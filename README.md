@@ -24,7 +24,7 @@ gets messy, `psql "$SUPABASE_DB_URL" -f supabase/seed-demo.sql` restores it.
 | Framework | Next.js (App Router) + TypeScript |
 | Styling | Tailwind CSS |
 | Database & auth | Supabase (Postgres, row-level security) |
-| Payments | Stripe Checkout, test mode |
+| Payments | Razorpay Checkout, test mode |
 | Tests | Vitest |
 | Hosting | Vercel |
 
@@ -73,7 +73,34 @@ An anonymous visitor learns that a staff member is busy between two instants —
 never who with, and never why someone is away. `bookings` holds customer names
 and email addresses, and those tables stay shut.
 
-### 3. Wall-clock time and instants are different things
+### 3. A webhook signature is not optional
+
+Deposits are taken through Razorpay (Stripe is invite-only in India). The
+booking is created as `pending`, holds its slot, and becomes `confirmed` only
+when Razorpay's server-to-server webhook arrives and its signature verifies.
+
+The endpoint is public by necessity — Razorpay has to reach it — so the
+signature is the only thing separating Razorpay from anyone else who finds the
+URL. Without it, one `curl` posting `{"event":"payment.captured"}` marks any
+booking paid.
+
+Three details that matter:
+
+- The **raw body** is verified, not a parsed-and-re-serialised object. The HMAC
+  is over bytes, and `JSON.parse` + `JSON.stringify` can change key order and
+  whitespace. There's a test for exactly this.
+- Verification happens **before** parsing or touching the database.
+- It is **idempotent**. Webhooks retry; a repeat delivery returns
+  `already_confirmed` rather than erroring or double-confirming.
+
+The checkout callback running in the customer's browser deliberately does *not*
+confirm anything — it polls for the status the webhook sets. A client-side
+"payment succeeded" is a claim from an untrusted device.
+
+`confirm_booking_payment` is granted to `service_role` only. If anonymous
+callers could reach it, payment would be decorative.
+
+### 4. Wall-clock time and instants are different things
 
 Weekly hours are stored as `time` (a wall-clock reading); bookings as
 `timestamptz` (an absolute instant). "I work 9–5 on Tuesdays" stays true across
@@ -123,7 +150,7 @@ Client Component.
 - [x] Phase 3 — Services and staff CRUD, row-level security
 - [x] Phase 4 — Availability engine
 - [x] Phase 5 — Public booking page
-- [ ] Phase 6 — Stripe deposits
+- [x] Phase 6 — Deposits (Razorpay)
 - [x] Phase 7 — Owner dashboard and polish
 
 ---
