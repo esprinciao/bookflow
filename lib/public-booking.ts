@@ -30,6 +30,7 @@ export interface BookingPageData {
     slug: string;
     timezone: string;
     currency: string;
+    depositPercent: number;
   };
   services: PublicService[];
   staff: PublicStaff[];

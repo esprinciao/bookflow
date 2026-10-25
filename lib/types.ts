@@ -19,6 +19,8 @@ export interface Business {
   timezone: string;
   /** ISO 4217, uppercase. */
   currency: string;
+  /** Percentage of the price taken up front. 0 means no payment at booking. */
+  deposit_percent: number;
   created_at: string;
 }
 

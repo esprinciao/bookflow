@@ -20,7 +20,7 @@ declare
   v_cut        uuid := gen_random_uuid();
   v_trim       uuid := gen_random_uuid();
   v_colour     uuid := gen_random_uuid();
-  v_tz         text := 'Europe/London';
+  v_tz         text := 'Asia/Kolkata';
   v_today      date;
 begin
   insert into auth.users (
@@ -40,16 +40,18 @@ begin
 
   -- The signup trigger already created the business; make its slug predictable
   -- so the landing page can link straight to it.
+  -- Razorpay settles in INR, so the demo prices in rupees. price_cents holds
+  -- the smallest unit, which for INR is paise: 150000 is Rs 1,500.
   update public.businesses
-     set slug = 'demo', currency = 'GBP'
+     set slug = 'demo', currency = 'INR', deposit_percent = 20
    where owner_id = v_user_id
   returning id into v_business;
 
   insert into public.services (id, business_id, name, duration_minutes, price_cents, buffer_minutes, active) values
-    (v_cut,    v_business, 'Cut & finish',        60,  4500,  15, true),
-    (v_trim,   v_business, 'Quick trim',          20,  1800,   0, true),
-    (v_colour, v_business, 'Colour & cut',       150, 12000,  30, true),
-    (gen_random_uuid(), v_business, 'Bridal styling (seasonal)', 180, 20000, 30, false);
+    (v_cut,    v_business, 'Cut & finish',        60, 150000,  15, true),
+    (v_trim,   v_business, 'Quick trim',          20,  60000,   0, true),
+    (v_colour, v_business, 'Colour & cut',       150, 400000,  30, true),
+    (gen_random_uuid(), v_business, 'Bridal styling (seasonal)', 180, 800000, 30, false);
 
   insert into public.staff (id, business_id, name, email, active) values
     (v_aisha, v_business, 'Aisha Rahman', 'aisha@lumen.example', true),
@@ -109,7 +111,7 @@ begin
     end as day
   ) d;
 
-  raise notice 'Seeded Lumen Hair Studio at /book/demo';
+  raise notice 'Seeded Lumen Hair Studio at /book/demo (INR, 20%% deposit)';
 end $$;
 
 commit;

@@ -279,6 +279,10 @@ export default async function BookPage({
               staffId={member.id}
               startsAt={chosenSlot}
               backHref={href({ slot: undefined })}
+              depositCents={Math.round(
+                (service.priceCents * (business.depositPercent ?? 0)) / 100,
+              )}
+              currency={business.currency}
             />
           </Step>
         )}

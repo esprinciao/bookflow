@@ -9,6 +9,7 @@ const nav = [
   { href: "/staff", label: "Team" },
   { href: "/availability", label: "Availability" },
   { href: "/bookings", label: "Bookings" },
+  { href: "/settings", label: "Settings" },
 ] as const;
 
 export default async function DashboardLayout({ children }: LayoutProps<"/">) {

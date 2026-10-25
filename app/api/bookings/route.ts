@@ -6,6 +6,7 @@ import {
 } from "@/lib/public-booking";
 import { generateSlots } from "@/lib/availability";
 import { EXCLUSION_VIOLATION } from "@/lib/types";
+import { createOrder } from "@/lib/razorpay";
 import { wallClockAt } from "@/lib/time";
 
 /** Bookings must be at least this far ahead. */
@@ -98,6 +99,33 @@ export async function POST(request: Request) {
     );
   }
 
+  // When a deposit is required, the Razorpay order is created BEFORE the
+  // booking row. If the slot is taken in between, the order is simply never
+  // paid and expires — harmless. The reverse order would mean holding a slot
+  // we might then fail to collect payment for.
+  //
+  // The amount sent here is recomputed inside create_booking from the stored
+  // service price and deposit percentage. Nothing the browser sends can
+  // influence what is actually charged or what status the booking gets.
+  const depositPercent = page.business.depositPercent ?? 0;
+  const depositCents = Math.round((service.priceCents * depositPercent) / 100);
+
+  let orderId: string | null = null;
+  if (depositCents > 0) {
+    try {
+      const order = await createOrder({
+        amount: depositCents,
+        currency: page.business.currency,
+        receipt: `bk_${Date.now().toString(36)}`,
+        notes: { slug, serviceId, staffId, startsAt: requested.toISOString() },
+      });
+      orderId = order.id;
+    } catch (cause) {
+      console.error("razorpay order failed", cause);
+      return fail("Couldn't start the payment. Please try again.", 502);
+    }
+  }
+
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("create_booking", {
     p_slug: slug,
@@ -106,6 +134,8 @@ export async function POST(request: Request) {
     p_customer_name: customerName,
     p_customer_email: customerEmail,
     p_starts_at: requested.toISOString(),
+    p_payment_provider: orderId ? "razorpay" : null,
+    p_payment_order_id: orderId,
     });
 
   if (error) {
@@ -127,7 +157,33 @@ export async function POST(request: Request) {
     return fail("Something went wrong creating your booking.", 500);
   }
 
-  return NextResponse.json({ booking: data, service: service.name }, { status: 201 });
+  const booking = data as {
+    id: string;
+    status: string;
+    depositCents: number;
+    currency: string;
+  };
+
+  return NextResponse.json(
+    {
+      booking,
+      service: service.name,
+      // Present only when payment is required. The key id is publishable by
+      // design — it identifies the merchant to Razorpay's checkout script and
+      // grants nothing on its own.
+      payment:
+        booking.status === "pending" && orderId
+          ? {
+              provider: "razorpay",
+              orderId,
+              keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+              amount: booking.depositCents,
+              currency: booking.currency,
+            }
+          : null,
+    },
+    { status: 201 },
+  );
 }
 
 export const dynamic = "force-dynamic";
