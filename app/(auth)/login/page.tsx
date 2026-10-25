@@ -1,0 +1,22 @@
+import type { Metadata } from "next";
+import { LoginForm } from "@/components/auth/login-form";
+
+export const metadata: Metadata = { title: "Sign in — BookFlow" };
+
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const { next } = await searchParams;
+
+  return (
+    <>
+      <h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>
+      <p className="mt-2 mb-8 text-sm text-muted">
+        Sign in to manage your services and bookings.
+      </p>
+      <LoginForm next={next ?? "/dashboard"} />
+    </>
+  );
+}
